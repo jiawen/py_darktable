@@ -3,7 +3,7 @@ import os
 import struct
 import subprocess
 import tempfile
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 
 # Point me to darktable-cli for 3.8.
 _DARKTABLE_CLI = "/Applications/darktable.app/Contents/MacOS/darktable-cli"
@@ -213,55 +213,15 @@ def to_hex_string(x):
     if type(x) == bytes:
         # Convert each byte into two hex characters and concat into a string.
         return ''.join([format(byte, '02x') for byte in x])
-    if type(x) == float:
+    elif type(x) == float:
         return to_hex_string(struct.pack('f', x))
-    elif type(x) == int:
+    elif type(x) == int or type(x) == bool:
+        # Pack bool as int (4 bytes).
         return to_hex_string(struct.pack('i', x))
     elif type(x) == list:
         return ''.join([to_hex_string(y) for y in x])
     else:
         raise ValueError("Unsupported type: %s" % type(x))
-
-
-# filmic rgb: 224 bytes
-# -> 28 floats
-
-# default:
-# 00000000 00000000 18000000 00000000 0000c842 00000000 00000000 00000000 00000000 05000000 00000000 00000000 00000000 00000000 00000000 00000000
-# 00000000 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f
-# 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f
-# 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f
-# 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f
-# 0000803f 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
-# 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
-
-# highlights:
-# 00000000 01000000 18000000 00000000 0000c842 00000000 00000000 00000000 00000000 05000000 00000000 00000000 00000000 00000000 00000000 00000000
-# 00000000 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f
-# 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f
-# 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f
-# 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f
-# 0000803f 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
-# 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
-
-# exposure and filmic_rgb:
-#            0        1        2        3        4        5        6        7        8        9        A        B        C        D        E        F
-# 0   00000000 04000000 18000000 00000000 0000c842 00000000 00000000 00000000 00000000 05000000 00000000 00000000 00000000 00000000 00000000 00000000
-# 16  00000000 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f
-# 32  0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f
-# 48  0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f
-# 64  0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f
-# 80  0000803f 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 789ad4c0 789ad4c0 00000000 00000000 789ad4c0 789ad4c0 00000000
-# 96  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
-
-# sharpen:
-# 00000000 02000000 18000000 00000000 0000c842 00000000 00000000 00000000 00000000 05000000 00000000 00000000 00000000 00000000 00000000 00000000
-# 00000000 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f
-# 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f
-# 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f
-# 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f 0000803f 00000000 00000000 0000803f
-# 0000803f 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
-# 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
 
 
 def default_blendif_parameters():
@@ -296,7 +256,7 @@ class BlendParams:
     details: float = 0
 
     # offset = 14 (in 4-byte words)
-    # uint32_t reserved[3];
+    reserved: list[int] = field(default_factory=lambda: [0] * 3)
 
     # 64 floats
     # offset = 17
@@ -319,30 +279,7 @@ class BlendParams:
     raster_mask_invert: bool = False
 
     def to_hex_string(self):
-        return to_hex_string([
-            self.mask_mode,
-            self.blend_cst,
-            self.blend_mode,
-            self.blend_parameter,
-            self.opacity,
-            self.mask_combine,
-            self.mask_id,
-            self.blendif,
-            self.feathering_radius,
-            self.feathering_guide,
-            self.blur_radius,
-            self.contrast,
-            self.brightness,
-            self.details,
-            [0] * 3,  # reserved
-            self.blendif_parameters,
-            self.blendif_boost_factors,
-            self.raster_mask_source,
-            self.raster_mask_instance,
-            self.raster_mask_id,
-            # Treat bool as an int here so that it's packed as 4 bytes.
-            int(self.raster_mask_invert)
-        ])
+        return to_hex_string([getattr(self, fd.name) for fd in fields(self)])
 
 
 # blend_params for exposure and filmicrgb modules
@@ -395,15 +332,54 @@ class ExposureParams:
     compensate_exposure_bias: bool = False
 
     def to_hex_string(self):
-        return to_hex_string([
-            self.mode,
-            self.black,
-            self.exposure,
-            self.deflicker_percentile,
-            self.deflicker_target_level,
-            # Treat bool as an int here so that it's packed as 4 bytes.
-            int(self.compensate_exposure_bias)
-        ])
+        return to_hex_string([getattr(self, fd.name) for fd in fields(self)])
+
+
+@dataclass
+class FilmicRGBParams:
+    grey_point_source: float = 18.45
+    black_point_source: float = -7.75
+    white_point_source: float = 4.400000095367432
+    reconstruct_threshold: float = 3.0
+    reconstruct_feather: float = 3.0
+    reconstruct_bloom_vs_details: float = 100.0
+    reconstruct_grey_vs_color: float = 100.0
+    reconstruct_structure_vs_texture: float = 0.0
+    security_factor: float = 0.0
+    grey_point_target: float = 18.45
+    black_point_target: float = 0.01517634
+    white_point_target: float = 100.0
+    output_power: float = 3.75882887840271
+    latitude: float = 50.0
+    contrast: float = 1.1
+    saturation: float = 0.0
+    balance: float = 0.0
+    noise_level: float = 0.2
+
+    # enum dt_iop_filmicrgb_methods_type_t
+    preserve_color: int = 3  # "preserve chrominance"
+    # enum dt_iop_filmicrgb_colorscience_type_t
+    version: int = 2  # "color science"
+    auto_hardness: bool = True  # "auto adjust hardness"
+    custom_grey: bool = False  # "use custom middle-gray values"
+    high_quality_reconstruction: int = 1  # "iterations of high-quality reconstruction"
+    # enum dt_iop_filmic_noise_distribution_t
+    # DT_NOISE_GAUSSIAN = 1
+    noise_distribution: int = 1  # "type of noise"
+
+    # dt_iop_filmicrgb_curve_type_t
+    # DT_FILMIC_CURVE_RATIONAL = 2
+    shadows: int = 2  #  "contrast in shadows"
+    highlights: int = 2  #  "contrast in highlights"
+
+    compensate_icc_black: bool = False  # "compensate output ICC profile black point"
+
+    # enum dt_iop_filmicrgb_spline_version_type_t
+    # DT_FILMIC_SPLINE_VERSION_V3 = 2
+    spline_version: int = 2  # "spline handling"
+
+    def to_hex_string(self):
+        return to_hex_string([getattr(self, fd.name) for fd in fields(self)])
 
 
 # dt_iop_highlights_params_t
@@ -424,8 +400,7 @@ class HighlightsParams:
     clip: float = 1.0
 
     def to_hex_string(self):
-        return to_hex_string(
-            [self.mode, self.blendL, self.blendC, self.blendH, self.clip])
+        return to_hex_string([getattr(self, fd.name) for fd in fields(self)])
 
 
 @dataclass
@@ -435,7 +410,7 @@ class SharpenParams:
     threshold: float = 0.5
 
     def to_hex_string(self):
-        return to_hex_string([self.radius, self.amount, self.threshold])
+        return to_hex_string([getattr(self, fd.name) for fd in fields(self)])
 
 
 @dataclass
@@ -446,7 +421,7 @@ class TemperatureParams:
     g2: float
 
     def to_hex_string(self):
-        return to_hex_string([self.red, self.green, self.blue, self.g2])
+        return to_hex_string([getattr(self, fd.name) for fd in fields(self)])
 
 
 print('blend_params: ', BlendParams().to_hex_string())
@@ -463,6 +438,8 @@ exposure_params = ExposureParams(black=-0.000244140625,
                                  exposure=0.5,
                                  compensate_exposure_bias=True)
 print('exposure_params: ', exposure_params.to_hex_string())
+
+print('filmic_rgb_params: ', FilmicRGBParams().to_hex_string())
 
 temp_params = TemperatureParams(1.420689582824707, 1.0, 2.0, math.nan)
 print('temp_params: ', temp_params.to_hex_string())
