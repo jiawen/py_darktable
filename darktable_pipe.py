@@ -84,7 +84,7 @@ _FMT_STR = '''<?xml version="1.0" encoding="UTF-8"?>
       darktable:operation="temperature"
       darktable:enabled="{enable_temperature}"
       darktable:modversion="3"
-      darktable:params="28d9b53f0000803f000000400000c07f"
+      darktable:params="{temperature_params}"
       darktable:multi_name=""
       darktable:multi_priority="0"
       darktable:blendop_version="11"
@@ -94,7 +94,7 @@ _FMT_STR = '''<?xml version="1.0" encoding="UTF-8"?>
       darktable:operation="highlights"
       darktable:enabled="{enable_highlights}"
       darktable:modversion="2"
-      darktable:params="000000000000803f00000000000000000000803f"
+      darktable:params="{highlights_params}"
       darktable:multi_name=""
       darktable:multi_priority="0"
       darktable:blendop_version="11"
@@ -104,7 +104,7 @@ _FMT_STR = '''<?xml version="1.0" encoding="UTF-8"?>
       darktable:operation="sharpen"
       darktable:enabled="{enable_sharpen}"
       darktable:modversion="1"
-      darktable:params="000000400000003f0000003f"
+      darktable:params="{sharpen_params}"
       darktable:multi_name=""
       darktable:multi_priority="0"
       darktable:blendop_version="11"
@@ -114,7 +114,7 @@ _FMT_STR = '''<?xml version="1.0" encoding="UTF-8"?>
       darktable:operation="filmicrgb"
       darktable:enabled="{enable_filmicrgb}"
       darktable:modversion="5"
-      darktable:params="gz02eJybNXOyIwPDjwNnz/Q4MDA4QPEJJwiGgFlANfrLKmxAYssnFADlPZyA6u1h8mfP+NgxA2kmIGaEijFCMRMUM0BpAGItFNk="
+      darktable:params="{filmicrgb_params}"
       darktable:multi_name=""
       darktable:multi_priority="0"
       darktable:blendop_version="11"
@@ -124,7 +124,7 @@ _FMT_STR = '''<?xml version="1.0" encoding="UTF-8"?>
       darktable:operation="exposure"
       darktable:enabled="{enable_exposure}"
       darktable:modversion="6"
-      darktable:params="00000000000080b90000003f00004842000080c001000000"
+      darktable:params="{exposure_params}"
       darktable:multi_name=""
       darktable:multi_priority="0"
       darktable:blendop_version="11"
@@ -145,68 +145,6 @@ _FMT_STR = '''<?xml version="1.0" encoding="UTF-8"?>
  </rdf:RDF>
 </x:xmpmeta>
 '''
-
-
-# Pipeline order is as follows, * means it can be skipped and therefore has a bool param.
-# 0 rawprepare
-# 1 temperature  *
-# 2 highlights   *
-# 3 demosaic
-# 4 flip         *
-# 5 exposure     *
-# 6 colorin
-# 7 sharpen      *
-# 8 filmicrgb    *
-# 9 colorout
-def get_pipe_xmp(enable_temperature=1,
-                 enable_highlights=1,
-                 enable_exposure=1,
-                 enable_sharpen=1,
-                 enable_filmicrgb=1):
-    return FMT_STR.format(enable_temperature=enable_temperature,
-                          enable_highlights=enable_highlights,
-                          enable_exposure=enable_exposure,
-                          enable_sharpen=enable_sharpen,
-                          enable_filmicrgb=enable_filmicrgb)
-
-
-def render(src_dng_path, dst_path, pipe_stage_flags):
-    with tempfile.NamedTemporaryFile(mode="w+t", suffix=".xmp",
-                                     delete=False) as f:
-        f.write(get_pipe_xmp(**pipe_stage_flags))
-        xmp_path = f.name
-    args = [
-        _DARKTABLE_CLI, src_dng_path, xmp_path, dst_path, "--core", "-d",
-        "perf"
-    ]
-    print('Running:\n', ' '.join(args), '\n')
-    subprocess.run(args)
-
-
-def render_stages(src_dng_path, dst_dir):
-    os.makedirs(dst_dir, exist_ok=True)
-
-    # Make a list of parameter dictionaries, *disabling* pipeline stages from back
-    # to front.
-
-    # Everything enabled.
-    params_dicts = [{}]
-    # Disable final stage.
-    params_dicts.append(dict(params_dicts[-1], enable_filmicrgb=0))
-    # Disable penultimate stage.
-    params_dicts.append(dict(params_dicts[-1], enable_sharpen=0))
-    # ...
-    params_dicts.append(dict(params_dicts[-1], enable_exposure=0))
-    params_dicts.append(dict(params_dicts[-1], enable_highlights=0))
-    params_dicts.append(dict(params_dicts[-1], enable_temperature=0))
-
-    for i in range(len(params_dicts)):
-        params_dict = params_dicts[i]
-        dst_path = os.path.join(dst_dir, f"{i:03}.tif")
-        render(src_dng_path, dst_path, params_dict)
-
-
-# render_stages("IMG_20200827_100935.dng", "/tmp/darktable_stages_IMG_20200827_100935")
 
 
 def to_hex_string(x):
@@ -415,35 +353,118 @@ class SharpenParams:
 
 @dataclass
 class TemperatureParams:
-    red: float
-    green: float
-    blue: float
-    g2: float
+    red: float = 1.420689582824707
+    green: float = 1.0
+    blue: float = 2.0
+    g2: float = math.nan
 
     def to_hex_string(self):
         return to_hex_string([getattr(self, fd.name) for fd in fields(self)])
 
 
-print('blend_params: ', BlendParams().to_hex_string())
+# Pipeline order is as follows, * means it can be skipped and therefore has a bool param.
+# 0 rawprepare
+# 1 temperature  *
+# 2 highlights   *
+# 3 demosaic
+# 4 flip         *
+# 5 exposure     *
+# 6 colorin
+# 7 sharpen      *
+# 8 filmicrgb    *
+# 9 colorout
+def get_pipe_xmp(temperature_params=TemperatureParams(),
+                 highlights_params=HighlightsParams(),
+                 exposure_params=ExposureParams(),
+                 sharpen_params=SharpenParams(),
+                 filmicrgb_params=FilmicRGBParams()):
+    def zineo(x):
+        return 0 if x is None else 1
 
-print('exposure_blend_params: ',
-      make_exposure_filmicrgb_blend_params().to_hex_string())
+    # Terrible hack - just disabling a stage doesn't let you set params to "",
+    # it must be a valid hex string (because it checks version numbers).
+    def to_hex(x, default_value):
+        return default_value.to_hex_string() if x is None else x.to_hex_string(
+        )
 
-print('highlights_blend_params: ',
-      make_highlights_blend_params().to_hex_string())
+    return _FMT_STR.format(enable_temperature=zineo(temperature_params),
+                           temperature_params=to_hex(temperature_params,
+                                                     TemperatureParams()),
+                           enable_highlights=zineo(highlights_params),
+                           highlights_params=to_hex(highlights_params,
+                                                    HighlightsParams()),
+                           enable_exposure=zineo(exposure_params),
+                           exposure_params=to_hex(exposure_params,
+                                                  ExposureParams()),
+                           enable_sharpen=zineo(sharpen_params),
+                           sharpen_params=to_hex(sharpen_params,
+                                                 SharpenParams()),
+                           enable_filmicrgb=zineo(filmicrgb_params),
+                           filmicrgb_params=to_hex(filmicrgb_params,
+                                                   FilmicRGBParams()))
 
-print('sharpen_blend_params: ', make_sharpen_blend_params().to_hex_string())
 
-exposure_params = ExposureParams(black=-0.000244140625,
-                                 exposure=0.5,
-                                 compensate_exposure_bias=True)
-print('exposure_params: ', exposure_params.to_hex_string())
+def render(src_dng_path, dst_path, pipe_stage_flags):
+    with tempfile.NamedTemporaryFile(mode="w+t", suffix=".xmp",
+                                     delete=False) as f:
+        f.write(get_pipe_xmp(**pipe_stage_flags))
+        xmp_path = f.name
+    args = [
+        _DARKTABLE_CLI, src_dng_path, xmp_path, dst_path, "--core", "-d",
+        "perf"
+    ]
+    print('Running:\n', ' '.join(args), '\n')
+    subprocess.run(args)
 
-print('filmic_rgb_params: ', FilmicRGBParams().to_hex_string())
 
-temp_params = TemperatureParams(1.420689582824707, 1.0, 2.0, math.nan)
-print('temp_params: ', temp_params.to_hex_string())
+def render_stages(src_dng_path, dst_dir):
+    os.makedirs(dst_dir, exist_ok=True)
 
-print('sharpen_params: ', SharpenParams().to_hex_string())
+    # Make a list of parameter dictionaries, *disabling* pipeline stages from
+    # back to front.
+    #
+    # Set a stage's params to None to disable it. Otherwise, pass it a
+    # <stage>Params instance.
 
-print('highlights_params: ', HighlightsParams().to_hex_string())
+    # Everything enabled.
+    params_dicts = [{}]
+    # Disable final stage, everything else uses default params.
+    params_dicts.append(dict(params_dicts[-1], filmicrgb_params=None))
+    # Disable penultimate stage, everything else uses default params.
+    params_dicts.append(dict(params_dicts[-1], sharpen_params=None))
+    # ...
+    params_dicts.append(dict(params_dicts[-1], exposure_params=None))
+    params_dicts.append(dict(params_dicts[-1], highlights_params=None))
+    params_dicts.append(dict(params_dicts[-1], temperature_params=None))
+
+    for i in range(len(params_dicts)):
+        params_dict = params_dicts[i]
+        dst_path = os.path.join(dst_dir, f"{i:03}.tif")
+        render(src_dng_path, dst_path, params_dict)
+
+
+#print('blend_params: ', BlendParams().to_hex_string())
+#
+#print('exposure_blend_params: ',
+#      make_exposure_filmicrgb_blend_params().to_hex_string())
+#
+#print('highlights_blend_params: ',
+#      make_highlights_blend_params().to_hex_string())
+#
+#print('sharpen_blend_params: ', make_sharpen_blend_params().to_hex_string())
+#
+#exposure_params = ExposureParams(black=-0.000244140625,
+#                                 exposure=0.5,
+#                                 compensate_exposure_bias=True)
+#print('exposure_params: ', exposure_params.to_hex_string())
+#
+#print('filmic_rgb_params: ', FilmicRGBParams().to_hex_string())
+#
+#print('temp_params: ', TemperatureParams().to_hex_string())
+#
+#print('sharpen_params: ', SharpenParams().to_hex_string())
+#
+#print('highlights_params: ', HighlightsParams().to_hex_string())
+
+render_stages("/Users/jiawen/Downloads/IMG_20200827_100935.dng",
+              "/tmp/darktable_stages_IMG_20200827_100935")
