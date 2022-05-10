@@ -297,6 +297,7 @@ class FilmicRGBParams:
     # enum dt_iop_filmicrgb_methods_type_t
     preserve_color: int = 3  # "preserve chrominance"
     # enum dt_iop_filmicrgb_colorscience_type_t
+    # DT_FILMIC_COLORSCIENCE_V3 = 2
     version: int = 2  # "color science"
     auto_hardness: bool = True  # "auto adjust hardness"
     custom_grey: bool = False  # "use custom middle-gray values"
