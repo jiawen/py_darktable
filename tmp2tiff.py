@@ -18,11 +18,11 @@ def tmp2tiff(input_file, output_file):
 
 def tmp2tiff_dir(dir):
     for prefix in [
-            #'temperature_bayer',
-            #'highlights_bayer',
-            #'filmicrgb',  # TODO(etseng): Remove me.
-            #'sharpen',
-            #'exposure',
+            'temperature_bayer',
+            'highlights_bayer',
+            'filmicrgb',  # TODO(etseng): Remove me.
+            'sharpen',
+            'exposure',
             'colorbalancergb',
     ]:
         for suffix in ["in", "out"]:
