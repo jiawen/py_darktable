@@ -18,13 +18,18 @@ def tmp2tiff(input_file, output_file):
 
 def tmp2tiff_dir(dir):
     for prefix in [
-            'temperature_bayer', 'highlights_bayer', 'filmicrgb', 'sharpen',
-            'exposure'
+            #'temperature_bayer',
+            #'highlights_bayer',
+            #'filmicrgb',  # TODO(etseng): Remove me.
+            #'sharpen',
+            #'exposure',
+            'colorbalancergb',
     ]:
-        in_file = os.path.join(dir, prefix) + '_in.tmp'
-        out_file = os.path.join(dir, prefix) + '_out.tif'
-        print(f"Converting {in_file} -> {out_file}")
-        tmp2tiff(in_file, out_file)
+        for suffix in ["in", "out"]:
+            in_file = os.path.join(dir, prefix) + f'_{suffix}.tmp'
+            out_file = os.path.join(dir, prefix) + f'_{suffix}.tif'
+            print(f"Converting {in_file} -> {out_file}")
+            tmp2tiff(in_file, out_file)
 
 
 tmp2tiff_dir(sys.argv[1])

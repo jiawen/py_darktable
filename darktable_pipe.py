@@ -139,6 +139,16 @@ _FMT_STR = '''<?xml version="1.0" encoding="UTF-8"?>
       darktable:multi_priority="0"
       darktable:blendop_version="11"
       darktable:blendop_params="gz14eJxjYIAACQYYOOHEgAZY0QVwggZ7CB6pfNoAAE8gGQg="/>
+     <rdf:li
+      darktable:num="11"
+      darktable:operation="colorbalancergb"
+      darktable:enabled="1"
+      darktable:modversion="4"
+      darktable:params="0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000803f000000000000803f0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000091ed3c3e0000000091ed3c3e00000000"
+      darktable:multi_name=""
+      darktable:multi_priority="0"
+      darktable:blendop_version="11"
+      darktable:blendop_params="000000000400000018000000000000000000c84200000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000000000000000000000000803f0000803f00000000000000000000803f0000803f00000000000000000000803f0000803f00000000000000000000803f0000803f00000000000000000000803f0000803f00000000000000000000803f0000803f00000000000000000000803f0000803f00000000000000000000803f0000803f00000000000000000000803f0000803f00000000000000000000803f0000803f00000000000000000000803f0000803f00000000000000000000803f0000803f00000000000000000000803f0000803f00000000000000000000803f0000803f00000000000000000000803f0000803f00000000000000000000803f0000803f0000000000000000000000000000000000000000000000000000000000000000789ad4c0789ad4c00000000000000000789ad4c0789ad4c000000000000000000000000000000000000000000000000000000000000000000000000000000000"/>
     </rdf:Seq>
    </darktable:history>
   </rdf:Description>
@@ -215,6 +225,52 @@ class BlendParams:
     raster_mask_id: int = 0
 
     raster_mask_invert: bool = False
+
+    def to_hex_string(self):
+        return to_hex_string([getattr(self, fd.name) for fd in fields(self)])
+
+
+@dataclass
+class ColorBalanceRGBParams:
+    # v1 params: 24 deprecated floats but they seem to have some effect in the code, ugh.
+    shadows_Y: float = 0.0
+    shadows_C: float = 0.0
+    shadows_H: float = 0.0
+    midtones_Y: float = 0.0
+    midtones_C: float = 0.0
+    midtones_H: float = 0.0
+    highlights_Y: float = 0.0
+    highlights_C: float = 0.0
+    highlights_H: float = 0.0
+    global_Y: float = 0.0
+    global_C: float = 0.0
+    global_H: float = 0.0
+    shadows_weight: float = 1.0
+    white_fulcrum: float = 0.0
+    highlights_weight: float = 1.0
+    chroma_shadows: float = 0.0
+    chroma_highlights: float = 0.0
+    chroma_global: float = 0.0
+    chroma_midtones: float = 0.0
+    saturation_global: float = 0.0
+    saturation_highlights: float = 0.0
+    saturation_midtones: float = 0.0
+    saturation_shadows: float = 0.0
+    hue_angle: float = 0.0
+
+    # v2 params: 4 deprecated floats
+    brilliance_global: float = 0.0
+    brilliance_highlights: float = 0.0
+    brilliance_midtones: float = 0.0
+    brilliance_shadows: float = 0.0
+
+    # v3 params: 1 deprecated param
+    mask_grey_fulcrum: float = 0.1845
+
+    # v4 params (current)
+    vibrance: float = 0.0  # global vibrance
+    grey_fulcrum: float = 0.1845  # global chroma
+    vibrance: float = 0.0  # global saturation
 
     def to_hex_string(self):
         return to_hex_string([getattr(self, fd.name) for fd in fields(self)])
@@ -365,19 +421,21 @@ class TemperatureParams:
 
 # Pipeline order is as follows, * means it can be skipped and therefore has a bool param.
 # 0 rawprepare
-# 1 temperature  *
-# 2 highlights   *
+# 1 temperature      *
+# 2 highlights       *
 # 3 demosaic
-# 4 flip         *
-# 5 exposure     *
+# 4 flip             *
+# 5 exposure         *
 # 6 colorin
-# 7 sharpen      *
-# 8 filmicrgb    *
-# 9 colorout
+# 7 sharpen          *
+# 8 colorbalancergb  *
+# 9 filmicrgb        *
+# 10 colorout
 def get_pipe_xmp(temperature_params=TemperatureParams(),
                  highlights_params=HighlightsParams(),
                  exposure_params=ExposureParams(),
                  sharpen_params=SharpenParams(),
+                 colorbalancergb_params=ColorBalanceRGBParams(),
                  filmicrgb_params=FilmicRGBParams()):
     def zineo(x):
         return 0 if x is None else 1
@@ -388,21 +446,20 @@ def get_pipe_xmp(temperature_params=TemperatureParams(),
         return default_value.to_hex_string() if x is None else x.to_hex_string(
         )
 
-    return _FMT_STR.format(enable_temperature=zineo(temperature_params),
-                           temperature_params=to_hex(temperature_params,
-                                                     TemperatureParams()),
-                           enable_highlights=zineo(highlights_params),
-                           highlights_params=to_hex(highlights_params,
-                                                    HighlightsParams()),
-                           enable_exposure=zineo(exposure_params),
-                           exposure_params=to_hex(exposure_params,
-                                                  ExposureParams()),
-                           enable_sharpen=zineo(sharpen_params),
-                           sharpen_params=to_hex(sharpen_params,
-                                                 SharpenParams()),
-                           enable_filmicrgb=zineo(filmicrgb_params),
-                           filmicrgb_params=to_hex(filmicrgb_params,
-                                                   FilmicRGBParams()))
+    return _FMT_STR.format(
+        enable_temperature=zineo(temperature_params),
+        temperature_params=to_hex(temperature_params, TemperatureParams()),
+        enable_highlights=zineo(highlights_params),
+        highlights_params=to_hex(highlights_params, HighlightsParams()),
+        enable_exposure=zineo(exposure_params),
+        exposure_params=to_hex(exposure_params, ExposureParams()),
+        enable_sharpen=zineo(sharpen_params),
+        sharpen_params=to_hex(sharpen_params, SharpenParams()),
+        enable_colorbalancergb=zineo(colorbalancergb_params),
+        colorbalancergb_params=to_hex(colorbalancergb_params,
+                                      ColorBalanceRGBParams()),
+        enable_filmicrgb=zineo(filmicrgb_params),
+        filmicrgb_params=to_hex(filmicrgb_params, FilmicRGBParams()))
 
 
 def render(src_dng_path, dst_path, pipe_stage_flags):
@@ -411,8 +468,8 @@ def render(src_dng_path, dst_path, pipe_stage_flags):
         f.write(get_pipe_xmp(**pipe_stage_flags))
         xmp_path = f.name
     args = [
-        _DARKTABLE_CLI, src_dng_path, xmp_path, dst_path, "--core", "-d",
-        "perf"
+        _DARKTABLE_CLI, src_dng_path, xmp_path, dst_path, "--core",
+        "--disable-opencl", "-d", "perf"
     ]
     print('Running:\n', ' '.join(args), '\n')
     subprocess.run(args)
@@ -430,10 +487,12 @@ def render_stages(src_dng_path, dst_dir):
     # Everything enabled.
     params_dicts = [{}]
     # Disable final stage, everything else uses default params.
-    params_dicts.append(dict(params_dicts[-1], filmicrgb_params=None))
+    params_dicts.append(dict(params_dicts[-1], filmicrgb_params=None)
+                        )  # TODO(etseng): Remove this stage by turning it off.
     # Disable penultimate stage, everything else uses default params.
-    params_dicts.append(dict(params_dicts[-1], sharpen_params=None))
+    params_dicts.append(dict(params_dicts[-1], colorbalancergb_params=None))
     # ...
+    params_dicts.append(dict(params_dicts[-1], sharpen_params=None))
     params_dicts.append(dict(params_dicts[-1], exposure_params=None))
     params_dicts.append(dict(params_dicts[-1], highlights_params=None))
     params_dicts.append(dict(params_dicts[-1], temperature_params=None))
@@ -445,6 +504,8 @@ def render_stages(src_dng_path, dst_dir):
 
 
 #print('blend_params: ', BlendParams().to_hex_string())
+#
+#print('colorbalancergb_params: ', ColorBalanceRGBParams().to_hex_string())
 #
 #print('exposure_blend_params: ',
 #      make_exposure_filmicrgb_blend_params().to_hex_string())
