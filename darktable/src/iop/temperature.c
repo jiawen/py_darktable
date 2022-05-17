@@ -470,7 +470,7 @@ void process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const 
   float *const out = (float *const)ovoid;
   const float *const d_coeffs = d->coeffs;
 
-  fprintf(stderr, "ELEPHANT: [TEMPERATURE]. ch = %d, bpc = %d, filters = %d\n", piece->colors, piece->bpc, filters);
+  fprintf(stderr, "ELEPHANT: [TEMPERATURE] process(). ch = %d, bpc = %d, filters = %d\n", piece->colors, piece->bpc, filters);
   dump_tmp(in, roi_in, piece->colors, "/tmp/temperature_bayer_in.tmp");
 
   if(filters == 9u)
@@ -586,14 +586,20 @@ void process_sse2(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, c
 {
   const uint32_t filters = piece->pipe->dsc.filters;
   dt_iop_temperature_data_t *d = (dt_iop_temperature_data_t *)piece->data;
+
+  fprintf(stderr, "ELEPHANT: [TEMPERATURE] process_sse2(). ch = %d, bpc = %d, filters = %d\n", piece->colors, piece->bpc, filters);
+
   if(filters)
   { // xtrans float mosaiced or bayer float mosaiced
     // plain C version is same speed for Bayer and actually a bit faster for Xtrans, so use it instead
+    fprintf(stderr, "ELEPHANT: [TEMPERATURE] process_sse2(): filters is not null: calling plain process.\n");
     process(self,piece,ivoid,ovoid,roi_in,roi_out);
     return;
   }
   else
-  { // non-mosaiced
+  {
+    fprintf(stderr, "ELEPHANT: [TEMPERATURE] process_sse2(): nonmosaic path.\n");
+     // non-mosaiced
     const size_t ch = piece->colors;
 
     const __m128 coeffs = _mm_set_ps(1.0f, d->coeffs[2], d->coeffs[1], d->coeffs[0]);

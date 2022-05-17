@@ -30,3 +30,14 @@ inline void debug_print_roi(const dt_iop_roi_t *const roi) {
   fprintf(stderr, "roi x = %d, y = %d, width = %d, height = %d, scale = %f\n",
     roi->x, roi->y, roi->width, roi->height, roi->scale);
 }
+
+inline void debug_print_color_matrix(const dt_colormatrix_t m) {
+  // Apparently, they store things transposed... I think.
+  // See dt_colormatrix_mul in dttypes.h.
+  for (int i = 0; i < 4; ++i) {
+      for (int j = 0; j < 4; ++j) {
+        fprintf(stderr, "%.3f ", m[j][i]);  // Note [j][i] here. This could be wrong, ugh.
+      }
+      fprintf(stderr, "\n");
+    }
+}
