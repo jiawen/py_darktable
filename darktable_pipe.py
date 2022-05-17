@@ -142,9 +142,9 @@ _FMT_STR = '''<?xml version="1.0" encoding="UTF-8"?>
      <rdf:li
       darktable:num="11"
       darktable:operation="colorbalancergb"
-      darktable:enabled="1"
+      darktable:enabled="{enable_colorbalancergb}"
       darktable:modversion="4"
-      darktable:params="0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000803f000000000000803f0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000091ed3c3e0000000091ed3c3e00000000"
+      darktable:params="{colorbalancergb_params}"
       darktable:multi_name=""
       darktable:multi_priority="0"
       darktable:blendop_version="11"
@@ -268,9 +268,9 @@ class ColorBalanceRGBParams:
     mask_grey_fulcrum: float = 0.1845
 
     # v4 params (current)
-    vibrance: float = 0.0  # global vibrance
-    grey_fulcrum: float = 0.1845  # global chroma
-    vibrance: float = 0.0  # global saturation
+    vibrance: float = 0.0  # $MIN: -1.0 $MAX: 1.0 $DEFAULT: 0 $DESCRIPTION: "global vibrance"
+    grey_fulcrum: float = 0.1845  # $MIN:  0.0 $MAX: 1.0 $DEFAULT: 0.1845 $DESCRIPTION: "contrast gray fulcrum"
+    contrast: float = 0.0  # $MIN: -1.0 $MAX: 1.0 $DEFAULT: 0. $DESCRIPTION: "contrast"
 
     def to_hex_string(self):
         return to_hex_string([getattr(self, fd.name) for fd in fields(self)])
@@ -528,5 +528,5 @@ def render_stages(src_dng_path, dst_dir):
 #
 #print('highlights_params: ', HighlightsParams().to_hex_string())
 
-render_stages("/Users/jiawen/Downloads/IMG_20200827_100935.dng",
-              "/tmp/darktable_stages_IMG_20200827_100935")
+#render_stages("/Users/jiawen/Downloads/IMG_20200827_100935.dng",
+#              "/tmp/darktable_stages_IMG_20200827_100935")
