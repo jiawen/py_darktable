@@ -1,4 +1,5 @@
 import math
+import numpy as np
 import os
 import struct
 import subprocess
@@ -34,7 +35,7 @@ _FMT_STR = '''<?xml version="1.0" encoding="UTF-8"?>
       darktable:operation="rawprepare"
       darktable:enabled="1"
       darktable:modversion="1"
-      darktable:params="080000000800000008000000080000004000400040004000ff030000"
+      darktable:params="{raw_prepare_params}"
       darktable:multi_name=""
       darktable:multi_priority="0"
       darktable:blendop_version="11"
@@ -166,6 +167,8 @@ def to_hex_string(x):
     elif type(x) == int or type(x) == bool:
         # Pack bool as int (4 bytes).
         return to_hex_string(struct.pack('i', x))
+    elif type(x) == np.uint16:
+        return to_hex_string(struct.pack('H', x))
     elif type(x) == list:
         return ''.join([to_hex_string(y) for y in x])
     else:
@@ -228,6 +231,31 @@ class BlendParams:
 
     def to_hex_string(self):
         return to_hex_string([getattr(self, fd.name) for fd in fields(self)])
+
+
+@dataclass
+class RawPrepareParams:
+    # Parse these out of Default Crop Origin using exiftool
+    x: int = 0
+    y: int = 0
+    # Parse these out of Default Crop Size using exiftool
+    width: int = 0
+    height: int = 0
+    # Parse this out as "Black Level" and "Black Level Repeat Dim".
+    # If repeat dim is (1, 1)), then it's a single value and just repeat it 4 times.
+    # If it's (2, 2), then repeat it's 4 values.
+    # Use make_black_levels() to get the type right.
+    black_levels: list[np.uint16] = field(
+        default_factory=lambda: [np.uint16(0)] * 4)
+    # Actually uint16 as well, but because of struct alignment, it's packed as an int.
+    white_point: int = 0
+
+    def to_hex_string(self):
+        return to_hex_string([getattr(self, fd.name) for fd in fields(self)])
+
+
+def make_black_levels(bl_0, bl_1, bl_2, bl_3):
+    return [np.uint16(bl_0), np.uint16(bl_1), np.uint16(bl_2), np.uint16(bl_3)]
 
 
 @dataclass
@@ -431,7 +459,8 @@ class TemperatureParams:
 # 8 colorbalancergb  *
 # 9 filmicrgb        *
 # 10 colorout
-def get_pipe_xmp(temperature_params=TemperatureParams(),
+def get_pipe_xmp(raw_prepare_params=RawPrepareParams(),
+                 temperature_params=TemperatureParams(),
                  highlights_params=HighlightsParams(),
                  exposure_params=ExposureParams(),
                  sharpen_params=SharpenParams(),
@@ -447,6 +476,7 @@ def get_pipe_xmp(temperature_params=TemperatureParams(),
         )
 
     return _FMT_STR.format(
+        raw_prepare_params=to_hex(raw_prepare_params, RawPrepareParams()),
         enable_temperature=zineo(temperature_params),
         temperature_params=to_hex(temperature_params, TemperatureParams()),
         enable_highlights=zineo(highlights_params),
