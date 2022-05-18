@@ -26,6 +26,14 @@ RUN cd /tmp \
   && conda init \
   && conda install -y numpy tifffile
 
+# Install rawpy with pip into the base environment.
+# There's some tomfoolery to start bash and have it pick up the environment.
+SHELL ["/root/miniconda/bin/conda", "run", "/bin/bash", "-c"]
+RUN pip install rawpy
+
+# Be sure to run the container with bash to pick up the environment.
+# docker run -it <container> bash
+
 # Darktable can now be built with:
 # ./build.sh
 #
