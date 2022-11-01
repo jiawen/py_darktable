@@ -5,9 +5,15 @@ import struct
 import subprocess
 import tempfile
 from dataclasses import dataclass, field, fields
+from sys import platform
 
 # Point me to darktable-cli for 3.8.
-_DARKTABLE_CLI = "/Applications/darktable.app/Contents/MacOS/darktable-cli"
+if platform == "linux" or platform == "linux2":
+    _DARKTABLE_CLI = "/home/jiawen/github/darktable/build/bin/darktable-cli"
+elif platform == "darwin":
+    _DARKTABLE_CLI = "/Applications/darktable.app/Contents/MacOS/darktable-cli"
+else:
+    raise NotImplementedError("platform not supported")
 
 _FMT_STR = '''<?xml version="1.0" encoding="UTF-8"?>
 <x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="XMP Core 4.4.0-Exiv2">

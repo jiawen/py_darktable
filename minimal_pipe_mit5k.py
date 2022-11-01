@@ -1,7 +1,9 @@
-from dataclasses import dataclass
 import darktable_pipe
 import numpy as np
 import rawpy
+
+# Runs a parameter sweep through a minimal pipeline on a single image.
+# The parameter sweep is done on two stages: contrast and sharpen amount.
 
 
 def minimal_pipe(src_dng, raw_prepare_params, temperature_params, output_tif):
