@@ -1,6 +1,7 @@
 import darktable_pipe
 import numpy as np
 import rawpy
+import sys
 
 # Runs a parameter sweep through a minimal pipeline on a single image.
 # The parameter sweep is done on two stages: contrast and sharpen amount.
@@ -75,8 +76,10 @@ def read_dng_params(dng_file):
     return raw_prepare_params, temperature_params
 
 
-if __name__ == '__main__':
-    src_dng_path = '/Users/jiawen/Downloads/a0001-jmac_DSC1459.dng'
+def main(argv):
+    # test file from the MIT5K dataset
+    # src_dng_path = '/Users/jiawen/Downloads/a0001-jmac_DSC1459.dng'
+    src_dng_path = argv[1]
 
     raw_prepare_params, temperature_params = read_dng_params(src_dng_path)
 
@@ -97,3 +100,7 @@ if __name__ == '__main__':
         # hexified properly.
         sharpen_only_pipe(src_dng_path, raw_prepare_params, temperature_params,
                           float(amount), f'/tmp/sharpen_amount_{amount}.tif')
+
+
+if __name__ == '__main__':
+    main(sys.argv)

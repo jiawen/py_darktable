@@ -9,7 +9,8 @@ from sys import platform
 
 # Point me to darktable-cli for 3.8.
 if platform == "linux" or platform == "linux2":
-    _DARKTABLE_CLI = "/home/jiawen/github/darktable/build/bin/darktable-cli"
+    # For running inside the Docker image.
+    _DARKTABLE_CLI = "/github/darktable/build/bin/darktable-cli"
 elif platform == "darwin":
     _DARKTABLE_CLI = "/Applications/darktable.app/Contents/MacOS/darktable-cli"
 else:

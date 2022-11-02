@@ -31,18 +31,8 @@ RUN cd /tmp \
 SHELL ["/root/miniconda/bin/conda", "run", "/bin/bash", "-c"]
 RUN pip install rawpy
 
-# Be sure to run the container with bash to pick up the environment.
-# docker run -it <container> bash
+# Add modified iops to C code.
+ADD darktable/src/iop /github/darktable/src/iop
 
-# Darktable can now be built with:
-# ./build.sh
-#
-# The default build type is "release with debug info". List of build types:
-# ./build.sh --build-type Debug
-# ./build.sh --build-type Release
-# ./build.sh --build-type RelWithDebInfo
-#
-# Passing -j to increase parallelism might work. E.g., ./build.sh -j32 for 32 threads.
-
-# Run the CLI with:
-# build/bin/darktable-cli
+# Add Python wrapper.
+COPY py /py
